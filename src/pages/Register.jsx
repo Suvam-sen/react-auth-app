@@ -1,43 +1,75 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import formValidation from "../utils/formValidation";
 import { auth } from "../utils/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 
 const Register = () => {
-  const [registerErrors, setRegisterErrors] = useState({})
+  // const [registerErrors, setRegisterErrors] = useState({})
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    errors: {}
+  })
 
-  const username = useRef(null);
-  const email = useRef(null);
-  const password = useRef(null);
+  const authenticateUser = async (email, password) => {
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        console.log("User:", userCredential.user);
+        return {};
+      } catch (error) {
+        return {
+          code: error.code,
+          message: error.message,
+        };
+      }
+    };
+
+  const handleChange = (e) => {
+    const {name, value} = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
 
   const handleRegister = async (e) => {
     e.preventDefault();
 
+    setFormData((prev) => ({
+      ...prev, errors: {}
+    }))
+
     const validErrors = formValidation(
-      username.current.value,
-      email.current.value,
-      password.current.value
+      formData.username,
+      formData.email,
+      formData.password
     );
 
-    if (validErrors) return setRegisterErrors(validErrors)
-
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.current.value,
-        password.current.value
-      );
-      console.log(userCredential.user);
-      setRegisterErrors({});
-    } catch (error) {
-      setRegisterErrors({
-        code: error.code,
-        message: error.message,
-      });
+    if (Object.keys(validErrors).length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        errors: {
+          ...prev.errors,
+          ...validErrors
+        }
+      }));
+      return;
     }
 
-    console.log(registerErrors);
+    const authError = await authenticateUser(formData.email, formData.password)
+
+    if (authError.code) {
+      setFormData((prev) => ({
+        ...prev,
+        errors: {
+          ...prev.errors,
+          code: authError.code,
+          message: authError.message
+        }
+      }));
+    }
   };
 
   return (
@@ -52,10 +84,12 @@ const Register = () => {
               className="p-2 border rounded-xl"
               placeholder="Enter your username"
               type="text"
-              ref={username}
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
             />
-            {registerErrors.username && (
-              <p className="text-red-500">{registerErrors.username}</p>
+            {formData.errors.username && (
+              <p className="text-red-500">{formData.errors.username}</p>
             )}
           </div>
 
@@ -65,9 +99,11 @@ const Register = () => {
               className="p-2 border rounded-xl"
               placeholder="Enter your email"
               type="email"
-              ref={email}
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
             />
-            {registerErrors.email && <p className="text-red-500">{registerErrors.email}</p>}
+            {formData.errors.email && <p className="text-red-500">{formData.errors.email}</p>}
           </div>
 
           <div className="flex flex-col gap-2">
@@ -76,10 +112,12 @@ const Register = () => {
               className="p-2 border rounded-xl"
               placeholder="Enter your password"
               type="password"
-              ref={password}
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
             />
-            {registerErrors.password && (
-              <p className="text-red-500">{registerErrors.password}</p>
+            {formData.errors.password && (
+              <p className="text-red-500">{formData.errors.password}</p>
             )}
           </div>
 
@@ -97,8 +135,8 @@ const Register = () => {
             Login
           </Link>
         </p>
-        {registerErrors.code && (
-          <p className="text-red-500">{`${registerErrors.code} - ${registerErrors.message}`}</p>
+        {formData.errors.code && (
+          <p className="text-red-500">{`${formData.errors.code} - ${formData.errors.message}`}</p>
         )}
       </div>
     </div>
