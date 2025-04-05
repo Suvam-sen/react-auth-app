@@ -23,7 +23,7 @@ const App = () => {
             displayName: user.displayName,
           })
         );
-        navigate("/dashboard");    // Navigate to dashboard
+        navigate("/dashboard");
       } else {
         // User is logged out → clear data and navigate to login
         dispatch(removeUser());
